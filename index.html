@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>图片滚动缩放并且可拖动</title>
+	<style>
+		.ui-mask{width:100%;height:100%;
+			background:#000;
+			position:fixed;top:0;height:0;z-index:8000;
+			opacity:.4;filter:alpha(opacity=40);
+			display:none}
+		#kuang{width:100%;height:100%;
+			background-color:transparent;overflow:hidden;
+			position:fixed;top:0;left:0;z-index:8000;
+			display:none}
+		.ui-dialog{display:none;
+			position:absolute;z-index:9000;top:0;left:0;
+			background-color:transparent}
+		.ui-dialog img{display:block;
+			width:100%;height:100%}
+		.ui-dialog .percenge{width:100px;height:40px;
+			line-height:40px;
+			position:fixed;top:50%;left:50%;
+			margin-top:-20px;margin-left:-50px;
+			background:#000;
+			opacity:0;filter:alpha(opacity=0);
+			box-shadow:0 0 5px #fff;
+			color:#fff;
+			font-size:18px;text-align:center;
+			border-radius:25px;
+			-webkit-transition:opacity .3s ease-out;transition:opacity .3s ease-out}
+		#dialogDrag{background-size:100% 100%;
+			-webkit-transition:transfrom .3s ease-in;transition:transfrom .3s ease-in;
+			border:1px solid #d5d5d5;
+			background:#fff;
+			cursor: move;
+		}
+		.ui-dialog-closebutton{width:80px;height:80px;
+			display:block;
+			position:fixed;top:108px;right:108px;
+			background:url('./dele_1.png') no-repeat;background-size:contain;
+			cursor:pointer}
+	</style>
+</head>
+<body>
+	<div class="imgs">
+		<img src="http://h.hiphotos.baidu.com/baike/pic/item/d6ca7bcb0a46f21fb14047f1ff246b600c33ae1f.jpg">
+	</div>
+	<!-- 遮罩 -->
+	<div class="ui-mask" id="mask" onselectstart="return false"></div>
+
+	<div id="kuang">
+	  <div class="ui-dialog" id="dialogMove" onselectstart='return false;'>
+	    <div class="dialogDrag" id="dialogDrag"  onselectstart="return false;" >
+	        <!--<img src="http://img02.tooopen.com/images/20131214/sy_51918698676.jpg" alt=""  onselectstart="return false;">-->
+	    </div>
+	    <div id="percenge" class="percenge">100%</div>
+	    <a class="ui-dialog-closebutton" href="javascript:;"></a>
+	  </div>
+	</div>
+</body>
+<script>
+	    // 拖拽功能
+    var dialogInstace , onMoveStartId , mousePos = {x:0,y:0};	//	用于记录当前可拖拽的对象
+
+    //	获取元素对象
+    function g(id){return document.getElementById(id);}
+
+    //	自动居中元素（el = Element）
+    function autoCenter( el ){
+        var bodyW = document.documentElement.clientWidth;
+        var bodyH = document.documentElement.clientHeight;
+
+        var elW = el.offsetWidth;
+        var elH = el.offsetHeight;
+
+        el.style.left = (bodyW-elW)/2 + 'px';
+        el.style.top = (bodyH-elH)/2 + 'px';
+
+    }
+
+    //	自动扩展元素到全部显示区域
+    function fillToBody( el ){
+        el.style.width  = document.documentElement.clientWidth  +'px';
+        el.style.height = document.documentElement.clientHeight + 'px';
+    }
+
+    // 计算图片的大小
+    function getImgSize(img, el) {
+        var imgW = img.width
+        var imgH = img.height
+        var bodyW = document.documentElement.clientWidth;
+        var bodyH = document.documentElement.clientHeight;
+        var img_src = img.getAttribute('src')
+        el.style.backgroundImage = 'url(' + img_src + ')'
+        if (imgW/imgH > bodyW/bodyH) {
+            el.style.width = bodyW * 0.9 + 'px'
+            el.style.height = bodyW * 0.9 * imgH/imgW + 'px'
+        } else {
+            el.style.height = bodyH * 0.9 + 'px'
+            el.style.width = bodyH * 0.9 * imgW/imgH + 'px'
+        }
+    }
+
+    //	Dialog实例化的方法
+    function Dialog( dragId , moveId ){
+
+        var instace = {} ;
+
+        instace.dragElement  = g(dragId);	//	允许执行 拖拽操作 的元素
+        instace.moveElement  = g(moveId);	//	拖拽操作时，移动的元素
+
+        instace.mouseOffsetLeft = 0;			//	拖拽操作时，移动元素的起始 X 点
+        instace.mouseOffsetTop = 0;			//	拖拽操作时，移动元素的起始 Y 点
+
+        instace.dragElement.addEventListener('mousedown',function(e){
+
+            var e = e || window.event;
+
+            dialogInstace = instace;
+            instace.mouseOffsetLeft = e.pageX - instace.moveElement.offsetLeft ;
+            instace.mouseOffsetTop  = e.pageY - instace.moveElement.offsetTop ;
+
+            onMoveStartId = setInterval(onMoveStart,10);
+            return false;
+            // instace.moveElement.style.zIndex = zIndex ++;
+        })
+
+        return instace;
+    }
+
+    //	在页面中侦听 鼠标弹起事件
+    document.onmouseup = function(e){
+        dialogInstace = false;
+        clearInterval(onMoveStartId);
+    }
+    document.onmousemove = function( e ){
+        var e = window.event || e;
+        mousePos.x = e.clientX;
+        mousePos.y = e.clientY;
+
+        e.stopPropagation && e.stopPropagation();
+        e.cancelBubble = true;
+        e = this.originalEvent;
+        e && ( e.preventDefault ? e.preventDefault() : e.returnValue = false );
+
+        document.body.style.MozUserSelect = 'none';
+    }
+
+    function onMoveStart(){
+        var instace = dialogInstace;
+        if (instace) {
+            instace.moveElement.style.left = mousePos.x - instace.mouseOffsetLeft + "px";
+            instace.moveElement.style.top  = mousePos.y - instace.mouseOffsetTop + "px";
+        }
+    }
+
+
+    //	重新调整对话框的位置和遮罩，并且展现
+    function showDialog(e){
+        g('dialogMove').style.display = 'block';
+        g('mask').style.display = 'block';
+        g('kuang').style.display = 'block';
+        var img = e.target
+        getImgSize(img, g('dialogDrag'))
+        autoCenter( g('dialogMove') );
+        fillToBody( g('mask') );
+        fillToBody( g('kuang') );
+        document.body.style.height = '100%'
+        document.body.style.overflow = 'hidden'
+    }
+
+    //	关闭对话框
+    function hideDialog(){
+        g('dialogMove').style.display = 'none';
+        g('mask').style.display = 'none';
+        g('kuang').style.display = 'none';
+        document.body.style.height = 'auto%'
+        document.body.style.overflow = 'auto'
+        g('dialogDrag').style.transform = 'scale('+1+')'
+    }
+
+    Dialog('dialogDrag','dialogMove');
+  	document.querySelector('.imgs img').addEventListener('click', function() {
+  		var e = window.event || arguments[0]
+  		showDialog(e)
+  	}, false)
+    document.getElementsByClassName('ui-dialog-closebutton')[0].addEventListener('click', function () {
+        hideDialog()
+    }, false)
+
+    // 滚动鼠标实现图片放大缩小
+    var origin_percenge = 1
+    var min_percent = 1
+    var max_percent = 3
+    var timer
+    function changeImgSize() {
+        var ev=window.event||event;//处理浏览器兼容性问题
+        if (ev.stopPropajation) {
+            ev.stopPropajation()
+        }else{
+            ev.cancalBubble = true
+        }
+        var scrollUnit=Math.max(-1,Math.min(1,(ev.wheelDelta||-ev.detail)));
+        origin_percenge = origin_percenge + 0.04*scrollUnit
+        g('percenge').style.opacity = 0.65
+
+        clearTimeout(timer)
+        timer = setTimeout(function () {
+					g('percenge').style.opacity = 0
+        }, 1000)
+
+        if (origin_percenge<min_percent){
+            origin_percenge = 1
+        }
+        if (origin_percenge>max_percent){
+            origin_percenge = 3
+        }
+        this.style.transform = 'scale('+origin_percenge+')'
+
+        g('percenge').innerHTML = parseInt(origin_percenge*100)+'%'
+
+
+    }
+    g('dialogDrag').addEventListener('mousewheel',changeImgSize, false)
+    g('dialogDrag').addEventListener('DOMMouseScroll',changeImgSize, false)
+</script>
+</html>
